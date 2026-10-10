@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kata Mita - Smart Coffee Shop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#f3efe9;
+  --card:#fff;
+  --text:#333;
+  --primary:#6f4e37;
+}
+
+.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#fff;
+  --primary:#c49a6c;
+}
+
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.container{
+  max-width:420px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--card);
+}
+
+.header{
+  background:var(--primary);
+  color:#fff;
+  padding:18px;
+  text-align:center;
+  font-size:22px;
+  font-weight:600;
+}
+
+.logo-img{
+  display:block;
+  margin:10px auto;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  object-fit:cover;
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
+
+.card{
+  padding:16px;
+  border-bottom:1px solid #eee;
+}
+
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:14px;
+}
+
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button.secondary{
+  background:#ddd;
+  color:#333;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#f7f4f1;
+  padding:10px;
+  border-radius:8px;
+  margin-top:10px;
+  font-size:13px;
+}
+
+.dark .item{background:#2a2a2a;}
+
+.admin-btn{
+  font-size:11px;
+  padding:6px;
+  border-radius:5px;
+  border:none;
+  margin-left:3px;
+  cursor:pointer;
+}
+
+.plus{background:#4caf50;color:#fff}
+.minus{background:#f44336;color:#fff}
+.stock{background:#2196f3;color:#fff}
+.del{background:#000;color:#fff}
+
+.hide{display:none}
+
+.receipt{
+  background:#fffbe6;
+  padding:12px;
+  border-radius:8px;
+  margin-top:10px;
+  font-size:13px;
+}
+
+.dark .receipt{background:#2b2b1f;}
+
+.history-box{
+  max-height:200px;
+  overflow-y:auto;
+}
+</style>
+</head>
+<body>
+
+<audio id="beep" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+
+<div class="container" id="app">
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="header">
+    ☕ Kata Mita<br>Smart Coffee Shop
+  </div>
+
+  <img class="logo-img" src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80">
+
+  <div class="card">
+    <input id="adminUser" placeholder="Admin Username">
+    <input id="adminPass" type="password" placeholder="Admin Password">
+    <button onclick="adminLogin()">Admin Login</button>
+    <button class="secondary" onclick="openStudent()">Student/Staff Login</button>
+    <button class="secondary" onclick="toggleDark()">🌙 Dark Mode</button>
+  </div>
+</div>
+
+<!-- STUDENT -->
+<div id="student" class="hide">
+  <div class="header">Student/Staff Login</div>
+
+  <div class="card">
+    <input id="phone" placeholder="Phone Number">
+    <button onclick="sendOTP()">Send OTP</button>
+  </div>
+
+  <div class="card hide" id="otpPanel">
+    <input id="otpInput" placeholder="Enter OTP">
+    <button id="verifyOtpBtn" onclick="verifyOTP()">Verify OTP</button>
+    <button class="secondary" onclick="backToLoginFromStudent()">⬅ Back</button>
+  </div>
+
+  <div id="studentPanel" class="hide">
+    <div class="card">
+      <select id="plan">
+        <option value="1000">₹1000 Monthly Plan</option>
+        <option value="2000">₹2000 Monthly Plan</option>
+      </select>
+      <button onclick="startOrder()">Start Order</button>
+      <button class="secondary" onclick="backToLoginFromStudent()">⬅ Back</button>
+    </div>
+
+    <div class="card">
+      <h3>Menu</h3>
+      <div id="menu"></div>
+      <h4>Total: ₹<span id="total">0</span></h4>
+      <h4>Remaining: ₹<span id="remain">0</span></h4>
+      <button onclick="pay()">Proceed to Pay</button>
+    </div>
+
+    <div class="card">
+      <h3>📜 My Order History</h3>
+      <div id="studentHistory" class="history-box"></div>
+    </div>
+
+    <div class="card">
+      <h3>Recharge Wallet</h3>
+      <input id="rechargeAmount" placeholder="Enter Amount">
+      <button onclick="rechargeWallet()">Recharge</button>
+    </div>
+
+    <div class="card">
+      <button onclick="refreshStudentPanel()">🔄 Refresh Wallet & Orders</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT -->
+<div id="payment" class="hide">
+  <div class="header">Payment</div>
+  <div class="card">
+    <p>Scan to Pay (Demo)</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=KATA-MITA-PAY" width="180">
+    <button onclick="askRating()">Payment Done</button>
+  </div>
+
+  <div class="card receipt" id="receiptBox"></div>
+
+  <div class="card">
+    <button class="secondary" onclick="backToStudent()">⬅ Back</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="hide">
+  <div class="header">Admin Panel</div>
+
+  <div class="card">
+    <button class="secondary" onclick="backToLogin()">⬅ Back</button>
+  </div>
+
+  <div class="card">
+    <h3>Inventory</h3>
+    <div id="adminMenu"></div>
+  </div>
+
+  <div class="card">
+    <h3>Add Item</h3>
+    <input id="aEmoji" placeholder="Emoji">
+    <input id="aName" placeholder="Item Name">
+    <input id="aPrice" placeholder="Price">
+    <input id="aStock" placeholder="Stock">
+    <button onclick="addItem()">Add Item</button>
+  </div>
+
+  <div class="card">
+    <h3>📊 Daily Sales</h3>
+    <p>Total Orders: <b id="orderCount">0</b></p>
+    <p>Total Revenue: ₹<b id="revenue">0</b></p>
+  </div>
+
+  <div class="card">
+    <h3>👥 Student/Staff Order History</h3>
+    <button onclick="renderHistory()">🔄 Refresh History</button>
+    <div id="history" class="history-box"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let foods = [
+ {e:"☕",n:"Espresso",p:80,s:10},
+ {e:"🥐",n:"Croissant",p:60,s:12},
+ {e:"🍩",n:"Donut",p:40,s:15},
+ {e:"🧁",n:"Cupcake",p:50,s:10}
+];
+
+let total=0, orders=0, revenue=0;
+let orderItems=[], historyData=[], subscription=0;
+let otpSent = "";
+
+const menu = document.getElementById("menu");
+const remain = document.getElementById("remain");
+const studentHistory = document.getElementById("studentHistory");
+const historyDiv = document.getElementById("history");
+
+if(localStorage.getItem("historyData")){
+  historyData = JSON.parse(localStorage.getItem("historyData"));
+  updateSalesAndHistory();
+}
+
+// --- UTILITIES ---
+function play(){document.getElementById("beep").play();}
+function toggleDark(){document.body.classList.toggle("dark");}
+
+// --- LOGIN ---
+function adminLogin(){
+  if(adminUser.value=="admin" && adminPass.value=="1234"){
+    login.classList.add("hide");
+    admin.classList.remove("hide");
+    renderAdmin();
+    renderHistory();
+  } else alert("Invalid Admin");
+}
+
+function backToLogin(){admin.classList.add("hide");login.classList.remove("hide");}
+function backToLoginFromStudent(){
+  student.classList.add("hide");
+  login.classList.remove("hide");
+  otpPanel.classList.add("hide");
+  studentPanel.classList.add("hide");
+}
+function openStudent(){
+  login.classList.add("hide");
+  student.classList.remove("hide");
+  otpPanel.classList.add("hide");
+  studentPanel.classList.add("hide");
+}
+
+// --- OTP ---
+function sendOTP(){
+  let num = phone.value.trim();
+  if(!num){ alert("Enter phone"); return; }
+  otpSent = Math.floor(1000 + Math.random()*9000).toString();
+  alert("OTP sent: " + otpSent);
+  otpPanel.classList.remove("hide");
+}
+
+function verifyOTP(){
+  if(otpInput.value === otpSent){
+    alert("OTP Verified");
+    studentPanel.classList.remove("hide");
+    refreshStudentPanel();
+  } else { alert("Wrong OTP"); }
+}
+
+// --- ORDER ---
+function startOrder(){ 
+  total=0; orderItems=[];
+  subscription = +plan.value;
+  remain.innerText = subscription;
+  renderMenu();
+  renderStudentHistory();
+}
+
+function renderMenu(){
+  menu.innerHTML="";
+  foods.forEach((f,i)=>{
+    menu.innerHTML+=`
+      <div class="item">
+        ${f.e} ${f.n} ₹${f.p} | Stock:${f.s}
+        <button onclick="add(${i})">Add</button>
+      </div>`;
+  });
+}
+
+function add(i){
+  if(foods[i].s>0){
+    if(total + foods[i].p > subscription){
+      alert("Not enough balance!");
+      return;
+    }
+    play();
+    foods[i].s--;
+    total+=foods[i].p;
+    orderItems.push(foods[i].n);
+    document.getElementById('total').innerText=total;
+    remain.innerText = subscription-total;
+    renderMenu();
+  } else alert("Out of Stock");
+}
+
+function pay(){student.classList.add("hide");payment.classList.remove("hide");}
+
+function askRating(){
+  rating = prompt("Rate 1-5 ⭐");
+  if(!rating) rating="No rating";
+  finish();
+}
+
+function finish(){
+  orders++;
+  revenue+=total;
+  let cust = phone.value || "Unknown";
+
+  let entry = {
+    phone: cust,
+    items: [...orderItems],
+    amount: total,
+    rating: rating,
+    remaining: subscription-total,
+    date: new Date().toLocaleString()
+  };
+
+  historyData.push(entry);
+  localStorage.setItem("historyData", JSON.stringify(historyData));
+  updateSalesAndHistory();
+  renderStudentHistory();
+  renderHistory(); // <-- Admin always sees updated history
+
+  receiptBox.innerHTML=`
+    <b>🧾 Receipt</b><br>
+    Customer: ${cust}<br>
+    Items: ${orderItems.join(", ")}<br>
+    Amount: ₹${total}<br>
+    Remaining: ₹${subscription-total}<br>
+    ⭐ ${rating}
+  `;
+
+  alert("Order Completed!");
+}
+
+function backToStudent(){
+  payment.classList.add("hide");
+  student.classList.remove("hide");
+  refreshStudentPanel();
+}
+
+function renderStudentHistory(){
+  studentHistory.innerHTML="";
+  let num = phone.value.trim();
+  historyData.filter(h=>h.phone===num).forEach(h=>{
+    studentHistory.innerHTML+=`
+      <div class="item">
+        🍽 ${h.items.join(", ")}<br>
+        💰 ₹${h.amount}<br>
+        ⭐ ${h.rating}<br>
+        🕒 ${h.date}
+      </div>`;
+  });
+}
+
+// --- Wallet ---
+function rechargeWallet(){
+  let amt = +rechargeAmount.value;
+  if(amt>0){ subscription+=amt; remain.innerText=subscription-total; alert("Wallet recharged!"); }
+  else alert("Enter valid amount");
+}
+
+function refreshStudentPanel(){
+  let num = phone.value.trim();
+  if(num){
+    let studentOrders = historyData.filter(h=>h.phone===num);
+    if(studentOrders.length>0){
+      subscription = studentOrders[studentOrders.length-1].remaining + total;
+    }
+  }
+  total=0; remain.innerText=subscription-total;
+  renderMenu(); renderStudentHistory();
+  alert("Student panel refreshed!");
+}
+
+// --- Admin ---
+function renderAdmin(){
+  adminMenu.innerHTML="";
+  foods.forEach((f,i)=>{
+    adminMenu.innerHTML+=`
+      <div class="item">
+        ${f.e} ${f.n} ₹${f.p} | Stock:${f.s}
+        <div>
+          <button class="admin-btn plus" onclick="price(${i},10)">+₹</button>
+          <button class="admin-btn minus" onclick="price(${i},-10)">-₹</button>
+          <button class="admin-btn stock" onclick="stock(${i},1)">+S</button>
+          <button class="admin-btn stock" onclick="stock(${i},-1)">-S</button>
+          <button class="admin-btn del" onclick="del(${i})">X</button>
+        </div>
+      </div>`;
+  });
+}
+
+function price(i,v){foods[i].p+=v;if(foods[i].p<0)foods[i].p=0;renderAdmin();}
+function stock(i,v){foods[i].s+=v;if(foods[i].s<0)foods[i].s=0;renderAdmin();}
+function del(i){foods.splice(i,1);renderAdmin();}
+function addItem(){foods.push({e:aEmoji.value,n:aName.value,p:+aPrice.value,s:+aStock.value});renderAdmin();}
+
+function renderHistory(){
+  historyDiv.innerHTML="";
+  if(historyData.length===0){ historyDiv.innerHTML="<i>No orders yet.</i>"; return; }
+  historyData.forEach(h=>{
+    historyDiv.innerHTML+=`
+      <div class="item">
+        📱 ${h.phone}<br>
+        🍽 ${h.items.join(", ")}<br>
+        💰 ₹${h.amount}<br>
+        💳 Remaining: ₹${h.remaining}<br>
+        ⭐ ${h.rating}<br>
+        🕒 ${h.date}
+      </div>`;
+  });
+}
+
+function updateSalesAndHistory(){
+  orders = historyData.length;
+  revenue = historyData.reduce((a,b)=>a+b.amount,0);
+  document.getElementById('orderCount').innerText=orders;
+  document.getElementById('revenue').innerText=revenue;
+  renderHistory();
+}
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kawaii Canteen</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600&display=swap');
+
+body{
+  font-family:'Baloo 2',cursive;
+  background:linear-gradient(135deg,#ffd6e8,#d6eaff);
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.container{
+  width:390px;
+  background:#fff;
+  border-radius:30px;
+  box-shadow:0 30px 60px rgba(255,120,180,0.35);
+  display:none;
+  overflow:hidden;
+}
+
+.active{display:block}
+
+.header{
+  background:linear-gradient(135deg,#ff7eb3,#ff758c);
+  color:white;
+  text-align:center;
+  padding:20px;
+  font-size:23px;
+  font-weight:600;
+}
+
+.banner img{
+  width:100%;
+  height:160px;
+  object-fit:cover;
+}
+
+.content{padding:20px}
+
+input,select{
+  width:100%;
+  padding:14px;
+  border-radius:22px;
+  border:2px solid #ffd1e8;
+  font-size:15px;
+  margin-bottom:10px;
+}
+
+.btn{
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:24px;
+  font-size:16px;
+  margin-top:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn-primary{background:linear-gradient(135deg,#ff6fa1,#ff4f81);color:white}
+.btn-success{background:linear-gradient(135deg,#81c784,#66bb6a);color:white}
+.btn-secondary{background:#fff0f7}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#fff0f7;
+  padding:14px;
+  border-radius:22px;
+  margin-bottom:10px;
+}
+
+.summary{
+  background:#ffe0f0;
+  padding:14px;
+  border-radius:22px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ADMIN LOGIN -->
+<div class="container active" id="s0">
+  <div class="header">🛠 Admin Login</div>
+  <div class="banner"><img src="college.jpg"></div>
+  <div class="content">
+    <input id="adminUser" placeholder="Admin Username">
+    <input id="adminPass" type="password" placeholder="Admin Password">
+    <button class="btn btn-primary" onclick="adminLogin()">Login</button>
+    <button class="btn btn-secondary" onclick="switchScreen(0,1)">Student Login</button>
+  </div>
+</div>
+
+<!-- STUDENT LOGIN -->
+<div class="container" id="s1">
+  <div class="header">🌸 Student Login</div>
+  <div class="banner"><img src="college.jpg"></div>
+  <div class="content">
+    <input id="phone" placeholder="Phone Number">
+    <select id="plan">
+      <option value="1000">₹1000 Plan</option>
+      <option value="2000">₹2000 Plan</option>
+    </select>
+    <button class="btn btn-primary" onclick="goToS2()">Continue</button>
+  </div>
+</div>
+
+<!-- STUDENT CARD -->
+<div class="container" id="s2">
+  <div class="header">🎀 Student Card</div>
+  <div class="content">
+    👩‍🎓 Rahul Sharma<br>
+    📱 <span id="showPhone"></span><br>
+    💳 Plan: ₹<span id="showPlan"></span>
+    <button class="btn btn-primary" onclick="switchScreen(2,3)">Order Food</button>
+  </div>
+</div>
+
+<!-- CATEGORY -->
+<div class="container" id="s3">
+  <div class="header">🍡 Category</div>
+  <div class="content">
+    <button class="btn btn-primary" onclick="switchScreen(3,4)">🍟 Snacks</button>
+  </div>
+</div>
+
+<!-- FOOD MENU -->
+<div class="container" id="s4">
+  <div class="header">🧁 Snacks Menu</div>
+  <div class="content">
+    <div id="foodList"></div>
+    <div class="summary">
+      🧾 Order:
+      <div id="orderList"></div>
+      💰 Total ₹<span id="liveTotal">0</span>
+    </div>
+    <button class="btn btn-primary" onclick="goToPayment()">Proceed</button>
+  </div>
+</div>
+
+<!-- PAYMENT -->
+<div class="container" id="s5">
+  <div class="header">💖 Payment</div>
+  <div class="content">
+    🛍 Order Amount: ₹<span id="finalTotal"></span><br>
+    💳 Subscription: ₹<span id="subAmt"></span><br>
+    🌸 Remaining Balance: ₹<span id="remain"></span><br>
+    🎟 Token No: <b id="token"></b>
+    <select id="rating">
+      <option>⭐</option><option>⭐⭐</option><option>⭐⭐⭐</option>
+      <option>⭐⭐⭐⭐</option><option>⭐⭐⭐⭐⭐</option>
+    </select>
+    <button class="btn btn-success" onclick="confirmPayment()">Pay</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="container" id="s6">
+  <div class="header">🍱 Admin Panel</div>
+  <div class="content">
+    <input id="newEmoji" placeholder="Emoji (🍕🍔🥪)">
+    <input id="newItem" placeholder="Food Name">
+    <input id="newPrice" placeholder="Price">
+    <button class="btn btn-success" onclick="addItem()">Add Food Item</button>
+    <button class="btn btn-secondary" onclick="switchScreen(6,1)">Logout</button>
+  </div>
+</div>
+
+<script>
+let total=0,tokenNo=100,subscription=1000;
+let foods=[
+  {emoji:"🍟",name:"French Fries",price:60},
+  {emoji:"🥟",name:"Samosa",price:20},
+  {emoji:"🍔",name:"Burger",price:50},
+  {emoji:"🥪",name:"Sandwich",price:40}
+];
+
+function switchScreen(f,t){
+  document.querySelectorAll('.container').forEach(c=>c.classList.remove('active'));
+  document.getElementById('s'+t).classList.add('active');
+}
+
+function adminLogin(){
+  if(adminUser.value==="admin" && adminPass.value==="1234"){
+    switchScreen(0,6);
+  } else alert("Invalid Admin Login");
+}
+
+function goToS2(){
+  subscription=+plan.value;
+  showPhone.innerText=phone.value;
+  showPlan.innerText=subscription;
+  switchScreen(1,2);
+}
+
+function renderFoods(){
+  foodList.innerHTML="";
+  foods.forEach((f,i)=>{
+    foodList.innerHTML+=
+    `<label class="item">${f.emoji} ${f.name} ₹${f.price}
+     <input type="checkbox" onchange="calc(${i},this)"></label>`;
+  });
+}
+
+function calc(i,el){
+  if(el.checked){
+    total+=foods[i].price;
+    orderList.innerHTML+=foods[i].emoji+" "+foods[i].name+"<br>";
+  } else total-=foods[i].price;
+  liveTotal.innerText=total;
+}
+
+function goToPayment(){
+  finalTotal.innerText=total;
+  subAmt.innerText=subscription;
+  remain.innerText=subscription-total;
+  token.innerText=++tokenNo;
+  switchScreen(4,5);
+}
+
+function confirmPayment(){
+  alert("Thanks for rating "+rating.value+" 🎀");
+  location.reload();
+}
+
+function addItem(){
+  foods.push({emoji:newEmoji.value,name:newItem.value,price:+newPrice.value});
+  renderFoods();
+  alert("Food Item Added");
+}
+
+renderFoods();
+</script>
+
+</body>
+</html>
